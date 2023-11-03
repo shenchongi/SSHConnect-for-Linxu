@@ -2,6 +2,7 @@ package com.example.ssh_linxu_demo;
 
 import android.util.Log;
 
+import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -10,6 +11,8 @@ public class SSHConnectTask {
     private JSch jSch;
 
     private Session session;
+
+    private ChannelExec channelExec;
 
     private String username;
 
@@ -33,7 +36,7 @@ public class SSHConnectTask {
         this.port=port;
     }
 
-    public void startSSHConnect() {
+    public synchronized void startSSHConnect() {
         sshThread=new Thread(new Runnable() {
             @Override
             public void run() {
@@ -49,6 +52,7 @@ public class SSHConnectTask {
                     if (session.isConnected()){
                         isSSHConnect(true);
                         setConnectResult("连接成功");
+                        executeCommand("sudo apt update");
                         Log.i(TAG, "Connected to the server.");
                     }else {
                         isSSHConnect(false);
@@ -64,8 +68,11 @@ public class SSHConnectTask {
         });
         sshThread.start();
     }
-    public void executeCommand(){
+    public String executeCommand(String command) throws JSchException {
+        channelExec=(ChannelExec) session.openChannel("exec");
+        channelExec.setCommand(command);
 
+        return connectResult;
     }
 
     public void setConnectResult(String result){
