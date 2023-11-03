@@ -26,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tv_one,tv_tow;
 
+    private SSHConnectTask sshConnectTask;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,79 +35,48 @@ public class MainActivity extends AppCompatActivity {
         tv_one=findViewById(R.id.tv_one);
         tv_tow=findViewById(R.id.tv_tow);
 
-        SSHConnectTask task=new SSHConnectTask();
-        task.execute("root","192.168.31.217","123456");
-    }
+        sshConnectTask=new SSHConnectTask("shenchong","192.168.1.6","shenchong",804);
+        sshConnectTask.startSSHConnect();
 
-
-    private class SSHConnectTask extends AsyncTask<String, Void, Void>{
-
-        @Override
-        protected Void doInBackground(String... strings) {
-            String username=strings[0];
-            String host=strings[1];
-            int port=22;
-            String passwd=strings[2];
-
-            try {
-                if (openSession(username,host,port,passwd)){
-                    String results=executeCommand("top");
-                    Log.i("SSHConnect", "openSession:"+results);
+        sshConnectTask.setSHHConnectCallback(new SSHConnectTask.SSHConnectCallback() {
+            @Override
+            public void isConnect(boolean isConnect)  {
+                if (isConnect){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(MainActivity.this,"连接成功",Toast.LENGTH_LONG).show();
-                            Log.i("SSHConnect", "openSession: SSH connecting");
+                            Toast.makeText(getBaseContext(),"连接成功",Toast.LENGTH_LONG).show();
                             tv_one.setText("连接成功");
-                            tv_tow.setText(results);
+                            try {
+                                sshConnectTask.setCommand("sudo apt update");
+                                if (sshConnectTask.getConnectResult()!=null){
+                                    tv_tow.setText(sshConnectTask.getConnectResult());
+                                }
+                            } catch (JSchException e) {
+                                throw new RuntimeException(e);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     });
+
                 }
-            } catch (JSchException | IOException e) {
-                throw new RuntimeException(e);
             }
 
-            return null;
-        }
-    }
+            @Override
+            public void error(String error) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        tv_one.setText(error);
+                        Toast.makeText(getBaseContext(),"连接异常"+error,Toast.LENGTH_LONG).show();
+                    }
+                });
 
-    private boolean openSession(String username,String host,int port,String passwd) throws JSchException, IOException {
-        jSch=new JSch();
-        session=jSch.getSession(username,host,port);
-        session.setPassword(passwd);
-        session.setConfig("StrictHostKeyChecking","no");
-        session.connect();
-        System.out.println("Connected to the server.");
-
-        if (session.isConnected()){
-            Log.i("SSHConnect", "openSession: "+"连接成功");
-            return true;
-        }else {
-            Log.i("SSHConnect", "openSession: "+"连接失败");
-        }
-        return false;
-    }
-
-    private String executeCommand(String command) throws JSchException, IOException {
-        ChannelExec channelExec=(ChannelExec) session.openChannel("exec");
-        channelExec.setCommand(command);
-
-        InputStream inputStream=channelExec.getInputStream();
-
-        channelExec.connect();
-
-        StringBuffer result=new StringBuffer();
-        try {
-            BufferedReader reader=new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-            while ((line=reader.readLine())!=null){
-                result.append(line).append("\n");
             }
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }finally {
-            channelExec.connect();
-        }
-        return result.toString();
+        });
+
+
     }
+
 }

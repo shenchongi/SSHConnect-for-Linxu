@@ -1,13 +1,20 @@
 package com.example.ssh_linxu_demo;
 
+import android.telecom.Call;
 import android.util.Log;
+import android.util.TimeUtils;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
-public class SSHConnectTask {
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+public class SSHConnectTask extends Call.Callback {
     private JSch jSch;
 
     private Session session;
@@ -23,70 +30,120 @@ public class SSHConnectTask {
 
     private Thread sshThread;
 
-    private String TAG="SSHConnect";
+    private String TAG = "SSHConnect";
 
     private String connectResult;
 
-    private boolean isSSHConnect;
+    private boolean isSSHConnect = false;
 
-    public SSHConnectTask(String username,String host,String passwd,int port){
-        this.username=username;
-        this.host=host;
-        this.passwd=passwd;
-        this.port=port;
+    private SSHConnectCallback sshConnectCallback;
+
+    public SSHConnectTask(String username, String host, String passwd, int port) {
+        this.username = username;
+        this.host = host;
+        this.passwd = passwd;
+        this.port = port;
     }
 
     public synchronized void startSSHConnect() {
-        sshThread=new Thread(new Runnable() {
+        sshThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                jSch=new JSch();
+                jSch = new JSch();
                 try {
 
-                    session=jSch.getSession(username,host,port);
+                    session = jSch.getSession(username, host, port);
                     session.setPassword(passwd);
-                    session.setConfig("StrictHostKeyChecking","no");
+                    session.setPort(port);
+                    session.setConfig("StrictHostKeyChecking", "no");
                     session.connect();
 
-
-                    if (session.isConnected()){
-                        isSSHConnect(true);
+                    if (session.isConnected()) {
+                        setIsSSHConnect(true);
+                        sshConnectCallback.isConnect(true);
                         setConnectResult("连接成功");
-                        executeCommand("sudo apt update");
+                        channelExec = (ChannelExec) session.openChannel("exec");
                         Log.i(TAG, "Connected to the server.");
-                    }else {
-                        isSSHConnect(false);
+                    } else {
+                        setIsSSHConnect(false);
+                        sshConnectCallback.isConnect(false);
                         setConnectResult("连接失败");
                         Log.i(TAG, "Connected to the server Failed.");
                     }
 
                 } catch (JSchException e) {
+                    sshConnectCallback.error(e.toString());
                     throw new RuntimeException(e);
+
                 }
 
             }
         });
         sshThread.start();
     }
-    public String executeCommand(String command) throws JSchException {
-        channelExec=(ChannelExec) session.openChannel("exec");
-        channelExec.setCommand(command);
 
+    public void setSHHConnectCallback(SSHConnectCallback sshConnectCallback) {
+        this.sshConnectCallback = sshConnectCallback;
+    }
+
+    public void setCommand(String command) throws JSchException, IOException {
+        executeCommand(command);
+    }
+
+    public String executeCommand(String command) throws  IOException {
+        StringBuffer result = new StringBuffer();
+        sshThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                channelExec.setCommand(command);
+
+                InputStream inputStream = null;
+                try {
+                    inputStream = channelExec.getInputStream();
+                    channelExec.connect();
+
+
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                    String line;
+                    while((line=reader.readLine())!=null)
+                    {
+                        result.append(line).append("\n");
+                        Log.i(TAG, "executeCommand: " + reader.toString());
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (JSchException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }) {
+
+        };
+        sshThread.start();
+        return result.toString();
+    }
+
+    public void setConnectResult(String result) {
+        this.connectResult = result;
+    }
+
+    public String getConnectResult() {
         return connectResult;
     }
 
-    public void setConnectResult(String result){
-        this.connectResult=result;
+    public void setIsSSHConnect(boolean isSSHConnect) {
+        this.isSSHConnect = isSSHConnect;
     }
 
-    public String getConnectResult(){
-        return connectResult;
+    public boolean isSSHConnect() {
+        return this.isSSHConnect;
     }
 
-    public boolean isSSHConnect(boolean isSSHConnect){
-        this.isSSHConnect=isSSHConnect;
+    public interface SSHConnectCallback {
+        void isConnect(boolean isConnect);
 
-        return isSSHConnect;
+        void error(String error);
     }
 
 }
