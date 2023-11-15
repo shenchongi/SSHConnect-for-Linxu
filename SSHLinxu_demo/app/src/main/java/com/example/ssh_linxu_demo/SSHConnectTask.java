@@ -34,6 +34,7 @@ public class SSHConnectTask extends Thread {
 
     private String connectResult;
 
+
     private boolean isSSHConnect = false;
 
     private SSHConnectCallback sshConnectCallback;
@@ -54,13 +55,11 @@ public class SSHConnectTask extends Thread {
     private synchronized void startSSHConnect() {
         JSch jSch = new JSch();
         try {
-
             Session session = jSch.getSession(username, host, port);
             session.setPassword(passwd);
             session.setPort(port);
             session.setConfig("StrictHostKeyChecking", "no");
             session.connect();
-
             if (session.isConnected()) {
                 setIsSSHConnect(true);
                 sshConnectCallback.isConnect(true);
@@ -75,9 +74,11 @@ public class SSHConnectTask extends Thread {
             }
 
         } catch (JSchException e) {
+            //暂不抛出异常
+            Log.e(TAG, "SSH connection error: " + e.getMessage());
             sshConnectCallback.error(e.toString());
-            throw new RuntimeException(e);
-
+            Log.e(TAG, "终止连接！");
+            stop();
         }
     }
 
@@ -102,15 +103,26 @@ public class SSHConnectTask extends Thread {
             String line;
             while ((line = reader.readLine()) != null) {
                 result.append(line).append("\n");
-                Log.i(TAG, "executeCommand: " + reader.toString());
+                Log.i(TAG, "executeCommand: " + reader);
                 sshConnectCallback.getSSHReportResults(reader.toString());
             }
         } catch (IOException | JSchException e) {
+            Log.e(TAG, "Error executing command: " + e.getMessage());
+            sshConnectCallback.error(e.getMessage());
+            // 关闭输入流和断开通道连接
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException ioException) {
+                    Log.e(TAG, "Error closing input stream: " + ioException.getMessage());
+                }
+            }
+            channelExec.disconnect();
             throw new RuntimeException(e);
         }
     }
 
-    public void setConnectResult(String result) {
+    private void setConnectResult(String result) {
         this.connectResult = result;
     }
 
@@ -118,7 +130,7 @@ public class SSHConnectTask extends Thread {
         return connectResult;
     }
 
-    public void setIsSSHConnect(boolean isSSHConnect) {
+    private void setIsSSHConnect(boolean isSSHConnect) {
         this.isSSHConnect = isSSHConnect;
     }
 
