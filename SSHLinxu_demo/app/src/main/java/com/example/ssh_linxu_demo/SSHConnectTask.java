@@ -133,6 +133,8 @@ public class SSHConnectTask extends Thread {
         void getSSHReportResults(String results);
 
         void error(String error);
+
+
     }
 
 }

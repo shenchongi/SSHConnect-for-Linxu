@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements SSHConnectTask.SS
             handler.sendEmptyMessage(0);
         }
 
+
+
     }
 
     @Override
