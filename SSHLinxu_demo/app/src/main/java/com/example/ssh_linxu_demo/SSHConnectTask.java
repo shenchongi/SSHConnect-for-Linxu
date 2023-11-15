@@ -20,9 +20,6 @@ import java.io.InputStreamReader;
  * SSH连接管理类
  */
 public class SSHConnectTask extends Thread {
-    private JSch jSch;
-
-    private Session session;
 
     private ChannelExec channelExec;
 
@@ -55,10 +52,10 @@ public class SSHConnectTask extends Thread {
     }
 
     private synchronized void startSSHConnect() {
-        jSch = new JSch();
+        JSch jSch = new JSch();
         try {
 
-            session = jSch.getSession(username, host, port);
+            Session session = jSch.getSession(username, host, port);
             session.setPassword(passwd);
             session.setPort(port);
             session.setConfig("StrictHostKeyChecking", "no");
@@ -93,7 +90,7 @@ public class SSHConnectTask extends Thread {
     }
 
     public void executeCommand(String command) throws IOException {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         channelExec.setCommand(command);
 
         InputStream inputStream = null;
@@ -108,9 +105,7 @@ public class SSHConnectTask extends Thread {
                 Log.i(TAG, "executeCommand: " + reader.toString());
                 sshConnectCallback.getSSHReportResults(reader.toString());
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (JSchException e) {
+        } catch (IOException | JSchException e) {
             throw new RuntimeException(e);
         }
     }

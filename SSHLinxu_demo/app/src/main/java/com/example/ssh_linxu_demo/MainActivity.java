@@ -1,9 +1,12 @@
 package com.example.ssh_linxu_demo;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,11 +22,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SSHConnectTask.SSHConnectCallback {
 
     private TextView tv_one,tv_tow;
 
     private SSHConnectTask sshConnectTask;
+
+    private Handler handler=new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message msg) {
+            return false;
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,46 +45,25 @@ public class MainActivity extends AppCompatActivity {
         sshConnectTask=new SSHConnectTask("root","192.168.31.217","123456",21);
         sshConnectTask.start();
 
-        sshConnectTask.setSHHConnectCallback(new SSHConnectTask.SSHConnectCallback() {
-            @Override
-            public void isConnect(boolean isConnect)  {
-                if (isConnect){
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getBaseContext(),"连接成功",Toast.LENGTH_LONG).show();
-                            tv_one.setText("连接成功");
-                            try {
-                                sshConnectTask.setCommand("sudo apt update");
-                            } catch (JSchException | IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
-                }
-            }
+    }
 
-            @Override
-            public void getSSHReportResults(String results) {
-                if (sshConnectTask.getConnectResult()!=null){
-                    tv_tow.setText(sshConnectTask.getConnectResult());
-                }
-            }
-
-            @Override
-            public void error(String error) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        tv_one.setText(error);
-                        Toast.makeText(getBaseContext(),"连接异常"+error,Toast.LENGTH_LONG).show();
-                    }
-                });
-
-            }
-        });
-
+    @Override
+    public void isConnect(boolean isConnect) {
+        if (isConnect){
+            handler.sendEmptyMessage(1);
+        }else {
+            handler.sendEmptyMessage(0);
+        }
 
     }
 
+    @Override
+    public void getSSHReportResults(String results) {
+
+    }
+
+    @Override
+    public void error(String error) {
+
+    }
 }
