@@ -26,11 +26,9 @@ public class MainActivity extends AppCompatActivity implements SSHConnectTask.SS
 
     private TextView tv_one,tv_tow;
 
-    private SSHConnectTask sshConnectTask;
+    private final Message message=new Message();
 
-    private Message message=new Message();
-
-    private Handler handler=new Handler(new Handler.Callback() {
+    private final Handler handler=new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
             switch (msg.what){
@@ -56,14 +54,17 @@ public class MainActivity extends AppCompatActivity implements SSHConnectTask.SS
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        ViewInit();
+
+        SSHConnectTask sshConnectTask = new SSHConnectTask("root", "192.168.31.217", "123456", 21);
+        sshConnectTask.start();
+        sshConnectTask.setCommand("sudo apt install");
+    }
+
+    private void ViewInit() {
         tv_one=findViewById(R.id.tv_one);
         tv_tow=findViewById(R.id.tv_tow);
-
-        sshConnectTask=new SSHConnectTask("root","192.168.31.217","123456",21);
-        sshConnectTask.start();
-
-        sshConnectTask.setCommand("sudo apt install");
-
     }
 
     @Override

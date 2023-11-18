@@ -76,7 +76,7 @@ public class SSHConnectTask extends Thread {
         } catch (JSchException e) {
             //暂不抛出异常
             Log.e(TAG, "SSH connection error: " + e.getMessage());
-            sshConnectCallback.error(e.toString());
+            sshConnectCallback.error(e.getMessage());
             Log.e(TAG, "终止连接！");
             stop();
         }
@@ -86,8 +86,13 @@ public class SSHConnectTask extends Thread {
         this.sshConnectCallback = sshConnectCallback;
     }
 
-    public void setCommand(String command) throws JSchException, IOException {
-        executeCommand(command);
+    public void setCommand(String command) {
+        try{
+            executeCommand(command);
+        }catch (IOException e){
+            Log.e(TAG, "setCommand: 命令执行异常"+e.getMessage());
+            sshConnectCallback.error(e.getMessage());
+        }
     }
 
     public void executeCommand(String command) throws IOException {
