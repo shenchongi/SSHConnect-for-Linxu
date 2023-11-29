@@ -28,6 +28,8 @@ public class MainActivity extends AppCompatActivity implements SSHConnectTask.SS
 
     private final Message message=new Message();
 
+    private final String TAG = "MainActivity";
+
     private final Handler handler=new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
