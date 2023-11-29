@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements SSHConnectTask.SS
             switch (msg.what){
                 case 0:
                     tv_one.setText("连接失败");
+                    Log.i(TAG,"Connect Suss");
                     break;
                 case 1:
                     tv_one.setText("连接成功");
